@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security & privacy concerns
+    url: https://github.com/korpseluv/osu-dash/security/policy
+    about: Please avoid posting sensitive details publicly. If this repo has Security Advisories enabled, report there.

@@ -1,0 +1,40 @@
+{
+  "name": "osu-dash",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "prod": "nuxt build && node .output/server/index.mjs",
+    "pm2:start": "pm2 start ecosystem.config.cjs --update-env",
+    "pm2:restart": "pm2 restart osu-dash --update-env",
+    "pm2:stop": "pm2 stop osu-dash",
+    "pm2:logs": "pm2 logs osu-dash --lines 200",
+    "pm2:delete": "pm2 delete osu-dash",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@vueuse/core": "^14.1.0",
+    "chart.js": "^4.5.1",
+    "chokidar": "^5.0.0",
+    "lzma": "^2.3.2",
+    "nuxt": "^4.2.2",
+    "osu-api-v2-js": "^2.1.5",
+    "osu-parsers": "^4.1.7",
+    "rosu-pp-js": "^3.1.0",
+    "vue": "^3.5.26",
+    "vue-chartjs": "^5.3.3",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@vite-pwa/nuxt": "^1.1.0",
+    "autoprefixer": "^10.4.23",
+    "pngjs": "^7.0.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "vite-tsconfig-paths": "^6.0.3"
+  }
+}
