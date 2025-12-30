@@ -92,6 +92,7 @@ function modsToLabel(mods: number) {
 
 async function tryDecompressLzma(compressed: string): Promise<string | null> {
   try {
+    // @ts-expect-error external module ships without types
     const { LZMA } = await import('lzma/src/lzma_worker')
     return await new Promise((resolve, reject) => {
       const worker = new LZMA()
@@ -108,14 +109,19 @@ async function tryDecompressLzma(compressed: string): Promise<string | null> {
 
 function parseLifeGraph(raw: string) {
   if (!raw) return [] as Array<{ time: number; life: number }>
-  return raw
+  const entries: Array<{ time: number; life: number }> = []
+  raw
     .split(',')
     .map((pair) => pair.trim())
     .filter(Boolean)
-    .map((pair) => {
-      const [time, life] = pair.split('|').map(Number)
-      return { time, life }
+    .forEach((pair) => {
+      const [timeRaw, lifeRaw] = pair.split('|')
+      const time = Number(timeRaw)
+      const life = Number(lifeRaw)
+      if (!Number.isFinite(time) || !Number.isFinite(life)) return
+      entries.push({ time, life })
     })
+  return entries
 }
 
 function summarizeFrames(frames: string) {
@@ -128,7 +134,13 @@ function summarizeFrames(frames: string) {
   let lastY = 0
   const activity: Array<{ time: number; speed: number }> = []
   for (const row of rows) {
-    const [delta, x, y] = row.split('|').map(Number)
+    const parts = row.split('|')
+    const delta = Number(parts[0])
+    if (!Number.isFinite(delta)) continue
+    const xRaw = Number(parts[1])
+    const yRaw = Number(parts[2])
+    const x = Number.isFinite(xRaw) ? xRaw : lastX
+    const y = Number.isFinite(yRaw) ? yRaw : lastY
     t += delta
     const dx = x - lastX
     const dy = y - lastY
