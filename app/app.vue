@@ -754,7 +754,7 @@ const onGraphLeave = () => {
           <div
             v-for="(stat, idx) in stats"
             :key="stat.label"
-            class="silky-card silky-in group rounded-2xl border border-white/10 bg-zinc-900/60 p-5 text-left transition-all duration-500 ease-out hover:-translate-y-1 hover:border-white/30 hover:bg-white/10"
+            class="silky-card silky-in rounded-2xl border border-white/10 bg-zinc-900/60 p-5 text-left"
             :style="{ '--i': idx + 1 }"
           >
             <p class="text-xs uppercase tracking-[0.24em] text-zinc-500">{{ stat.label }}</p>
@@ -889,7 +889,7 @@ const onGraphLeave = () => {
               >
                 <button
                   v-if="score.deep_stats"
-                  class="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/5 text-zinc-500 backdrop-blur transition hover:border-white/60 hover:text-white hover:shadow-[0_0_14px_rgba(255,255,255,0.6)]"
+                  class="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/5 text-zinc-500 backdrop-blur transition hover:border-white/60 hover:text-white hover:shadow-[0_0_14px_rgba(255,255,255,0.6)] cursor-pointer"
                   aria-label="Open deep stats"
                   @click.stop="openDetail(score)"
                 >
@@ -950,7 +950,7 @@ const onGraphLeave = () => {
                     </div>
                     <button
                       v-if="score.deep_stats"
-                      class="text-zinc-500 group-hover:text-white transition-colors p-2"
+                      class="text-zinc-500 group-hover:text-white transition-colors p-2 cursor-pointer"
                       aria-label="Open deep stats"
                       @click.stop="openDetail(score)"
                     >
@@ -977,7 +977,7 @@ const onGraphLeave = () => {
               >
                 <button
                   v-if="score.deep_stats"
-                  class="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/5 text-zinc-500 backdrop-blur transition hover:border-white/60 hover:text-white hover:shadow-[0_0_14px_rgba(255,255,255,0.6)]"
+                  class="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/5 text-zinc-500 backdrop-blur transition hover:border-white/60 hover:text-white hover:shadow-[0_0_14px_rgba(255,255,255,0.6)] cursor-pointer"
                   aria-label="Open deep stats"
                   @click.stop="openDetail(score)"
                 >
@@ -1022,7 +1022,7 @@ const onGraphLeave = () => {
               >
                 <button
                   v-if="score.deep_stats"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/5 text-zinc-500 backdrop-blur transition hover:border-white/60 hover:text-white hover:shadow-[0_0_14px_rgba(255,255,255,0.6)]"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/5 text-zinc-500 backdrop-blur transition hover:border-white/60 hover:text-white hover:shadow-[0_0_14px_rgba(255,255,255,0.6)] cursor-pointer"
                   aria-label="Open deep stats"
                   @click.stop="openDetail(score)"
                 >
@@ -1170,7 +1170,7 @@ const onGraphLeave = () => {
                 </div>
               </div>
               <button
-                class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-zinc-200 transition-all duration-300 hover:border-white/30 hover:text-white disabled:opacity-60 shrink-0"
+                class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-zinc-200 transition-all duration-300 hover:border-white/30 hover:text-white disabled:opacity-60 shrink-0 cursor-pointer"
                 :disabled="pending"
                 @click="() => refresh()"
                 aria-label="Refresh profile"
