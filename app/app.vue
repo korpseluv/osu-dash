@@ -77,6 +77,9 @@ type ActivityPayload = {
   created_at?: string
 }
 
+const runtimeConfig = useRuntimeConfig()
+const appVersion = computed(() => String((runtimeConfig.public as any)?.gitHash || 'unknown'))
+
 const fallbackUser: UserPayload = {
   username: 'chlokun',
   avatar: 'https://a.ppy.sh/6829235?1680000000.jpeg',
@@ -190,7 +193,8 @@ const flagSvgs = import.meta.glob('../node_modules/flagpack-core/svg/m/*.svg', {
 const flagMap = Object.fromEntries(
   Object.entries(flagSvgs).map(([path, url]) => {
     const match = path.match(/\/([A-Za-z]{2})\.svg$/)
-    return [match ? match[1].toUpperCase() : path, url as string]
+    const code = match?.[1]
+    return [code ? code.toUpperCase() : path, url as string]
   })
 ) as Record<string, string>
 
@@ -1176,7 +1180,7 @@ const onGraphLeave = () => {
               </button>
             </div>
             <div class="flex items-center gap-3 flex-wrap justify-end text-zinc-400 sm:text-right text-left">
-              <span class="text-xs">osu!dash: 36886eb</span>
+              <span class="text-xs">osu!dash: {{ appVersion }}</span>
               <span v-if="isDev" class="text-[11px]">Dev Mode: Cache Bypassed</span>
             </div>
           </div>
