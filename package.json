@@ -15,7 +15,8 @@
     "pm2:logs": "pm2 logs osu-dash --lines 200",
     "pm2:delete": "pm2 delete osu-dash",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare && node scripts/setup-python-venv.mjs",
+    "setup:venv": "node scripts/setup-python-venv.mjs"
   },
   "dependencies": {
     "@vueuse/core": "^14.1.0",

@@ -1,5 +1,18 @@
+import { execSync } from 'node:child_process'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import { fileURLToPath } from 'node:url'
+
+function resolveGitHash() {
+  const envHash = process.env.GIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || process.env.COMMIT_SHA || process.env.SOURCE_VERSION
+  if (envHash) return String(envHash).slice(0, 7)
+  try {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  } catch {
+    return 'unknown'
+  }
+}
+
+const appGitHash = resolveGitHash()
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -26,7 +39,8 @@ export default defineNuxtConfig({
     public: {
       osuApiBase: process.env.NUXT_PUBLIC_OSU_API_BASE || 'https://osu.ppy.sh/api/v2',
       osuTargetUser: process.env.NUXT_PUBLIC_OSU_TARGET_USER,
-      appName: process.env.NUXT_PUBLIC_APP_NAME || 'osu!dash'
+      appName: process.env.NUXT_PUBLIC_APP_NAME || 'osu!dash',
+      gitHash: appGitHash
     }
   },
   app: {
