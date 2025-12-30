@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
+    "typecheck": "nuxt typecheck",
+    "test": "npm run typecheck && npm run build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "prod": "nuxt build && node .output/server/index.mjs",
