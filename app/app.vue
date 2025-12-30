@@ -182,7 +182,11 @@ const statusMeta = computed(() => {
   }
 })
 
-const flagSvgs = import.meta.glob('../node_modules/flagpack-core/svg/m/*.svg', { eager: true, as: 'url' }) as Record<string, string>
+const flagSvgs = import.meta.glob('../node_modules/flagpack-core/svg/m/*.svg', {
+  eager: true,
+  query: '?url',
+  import: 'default'
+}) as Record<string, string>
 const flagMap = Object.fromEntries(
   Object.entries(flagSvgs).map(([path, url]) => {
     const match = path.match(/\/([A-Za-z]{2})\.svg$/)
