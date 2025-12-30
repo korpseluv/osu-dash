@@ -1,5 +1,8 @@
-import { promises as fsp, writeFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
+import { promises as fsp, writeFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { tmpdir } from 'node:os'
 import { $fetch } from 'ofetch'
 
 import {
@@ -23,6 +26,8 @@ export type LazerWatcherOptions = {
 	clientSecret?: string | null
 	historyPath?: string
 	cachePath?: string
+	externalUr?: boolean
+	pythonBin?: string
 }
 
 const existingProcessedHashes = (globalThis as any).__osu_dash_processedHashes as Set<string> | undefined
@@ -75,6 +80,106 @@ async function saveCache(cachePath: string, cache: Record<string, any>) {
 	const dir = path.dirname(cachePath)
 	await fsp.mkdir(dir, { recursive: true })
 	writeFileSync(cachePath, JSON.stringify(cache, null, 2), { encoding: 'utf8', flag: 'w' })
+}
+
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url))
+
+function findProjectRoot(): string {
+	let dir = MODULE_DIR
+	for (let i = 0; i < 8; i++) {
+		if (existsSync(path.join(dir, 'package.json'))) return dir
+		const parent = path.dirname(dir)
+		if (parent === dir) break
+		dir = parent
+	}
+	return process.cwd()
+}
+
+const PROJECT_ROOT = findProjectRoot()
+
+async function runExternalUr(
+	replayFile: string,
+	pythonBin: string,
+	timeoutMs = 5000
+): Promise<number | null> {
+	const scriptSource = path.resolve(PROJECT_ROOT, 'app/utils/lazer/replayURCalc.py')
+	const scriptTmp = path.join(tmpdir(), 'osu-dash-replayURCalc.py')
+
+	try {
+		await fsp.copyFile(scriptSource, scriptTmp)
+	} catch (err) {
+		console.warn('[Replay Watcher] external UR script missing/unreadable', { scriptSource, err })
+		return null
+	}
+
+	return new Promise((resolve) => {
+		const child = spawn(pythonBin, [scriptTmp, replayFile], {
+			stdio: ['ignore', 'pipe', 'pipe']
+		})
+
+		let stdout = ''
+		let stderr = ''
+		let settled = false
+
+		const timer = setTimeout(() => {
+			if (settled) return
+			settled = true
+			child.kill('SIGKILL')
+			resolve(null)
+		}, timeoutMs)
+
+		child.stdout.on('data', (d) => {
+			stdout += String(d)
+		})
+		child.stderr.on('data', (d) => {
+			stderr += String(d)
+		})
+		child.on('error', () => {
+			if (settled) return
+			settled = true
+			clearTimeout(timer)
+			resolve(null)
+		})
+		child.on('close', (code) => {
+			if (settled) return
+			settled = true
+			clearTimeout(timer)
+			try {
+				const parsed = JSON.parse(stdout || '{}')
+				if (typeof parsed.ur === 'number' && Number.isFinite(parsed.ur)) return resolve(parsed.ur)
+			} catch {
+				// ignore parse errors
+			}
+			if (stderr) console.warn('[Replay Watcher] external UR stderr', stderr.trim())
+			console.warn('[Replay Watcher] external UR failed', {
+				code,
+				pythonBin,
+				scriptSource,
+				scriptTmp,
+				stdout: stdout.trim()
+			})
+			resolve(null)
+		})
+	})
+}
+
+function resolvePythonBin(preferred?: string | null): string {
+	if (preferred) return preferred
+	const envBin = process.env.OSU_DASH_PYTHON_BIN
+	if (envBin) return envBin
+	const isWin = process.platform === 'win32'
+	const roots = [process.cwd(), process.env.INIT_CWD, PROJECT_ROOT].filter(Boolean) as string[]
+	const candidates = isWin
+		? ['python.exe', 'python3.exe', 'python3.14.exe', 'python3.13.exe', 'python3.12.exe', 'python3.11.exe', 'python3.10.exe']
+		: ['python3', 'python', 'python3.14', 'python3.13', 'python3.12', 'python3.11', 'python3.10']
+	for (const root of roots) {
+		const venvDir = path.resolve(root, '.venv', isWin ? 'Scripts' : 'bin')
+		for (const name of candidates) {
+			const candidate = path.join(venvDir, name)
+			if (existsSync(candidate)) return candidate
+		}
+	}
+	return 'python3'
 }
 
 async function fetchToken(clientId?: string | null, clientSecret?: string | null) {
@@ -200,7 +305,7 @@ function upsertHistory(history: any[], entry: any, beatmapHash: string | null, c
 	}
 
 	history.push(entry as any)
-	}
+}
 
 async function processReplay(filePath: string, opts: Required<LazerWatcherOptions>) {
 	const historyPath = opts.historyPath
@@ -290,6 +395,15 @@ async function processReplay(filePath: string, opts: Required<LazerWatcherOption
 		difficulty: entry?.difficulty ?? beatmapMeta?.version ?? null
 	})
 
+	if (opts.externalUr) {
+		try {
+			const externalUr = await runExternalUr(filePath, opts.pythonBin)
+			if (externalUr != null) deepStats.ur = externalUr
+		} catch (err) {
+			console.warn('[Replay Watcher] External UR failed; falling back to internal', err)
+		}
+	}
+
 	entry.deep_stats = deepStats
 
 	const history = await loadHistory(historyPath)
@@ -326,6 +440,8 @@ export async function startLazerReplayWatcher(options: LazerWatcherOptions) {
 	const filesPath = options.filesPath
 	const historyPath = options.historyPath || HISTORY_PATH_DEFAULT
 	const cachePath = options.cachePath || CACHE_PATH_DEFAULT
+	const externalUr = options.externalUr ?? true
+	const pythonBin = resolvePythonBin(options.pythonBin || null)
 
 	const opts: Required<LazerWatcherOptions> = {
 		replayPath,
@@ -335,8 +451,12 @@ export async function startLazerReplayWatcher(options: LazerWatcherOptions) {
 		clientId: options.clientId || null,
 		clientSecret: options.clientSecret || null,
 		historyPath,
-		cachePath
+		cachePath,
+		externalUr,
+		pythonBin
 	}
+
+	console.log('[Replay Watcher] external UR', externalUr ? 'enabled' : 'disabled', 'python:', pythonBin)
 
 	try {
 		await fsp.mkdir(replayPath, { recursive: true })
