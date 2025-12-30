@@ -615,10 +615,12 @@ const onGraphLeave = () => {
             <div class="flex items-center gap-4">
               <div class="relative h-20 w-20 overflow-hidden rounded-full border border-white/15 bg-black shadow-[0_0_40px_rgba(255,255,255,0.06)]">
                 <img :src="user.avatar" :alt="user.username" class="h-full w-full object-cover" />
-                <span class="absolute bottom-1 right-1 h-3 w-3 rounded-full bg-emerald-400 shadow-[0_0_0_6px_rgba(16,185,129,0.18)]" />
+                <span
+                  class="absolute bottom-1 right-1 h-3 w-3 rounded-full"
+                  :class="user.online ? 'bg-emerald-400 shadow-[0_0_0_6px_rgba(16,185,129,0.18)]' : 'bg-rose-400 shadow-[0_0_0_6px_rgba(248,113,113,0.18)]'"
+                />
               </div>
               <div class="space-y-1">
-                <p class="text-sm text-zinc-400">osu!dash 0.1</p>
                 <div class="flex flex-wrap items-center gap-2">
                   <h1 class="text-3xl font-semibold tracking-tight">{{ user.username }}</h1>
                   
@@ -628,7 +630,10 @@ const onGraphLeave = () => {
             </div>
             <div class="flex flex-col items-end gap-2 text-right">
               <div class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[13px] text-zinc-200 transition-all duration-500 ease-out hover:border-white/30">
-                <span class="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_6px_rgba(16,185,129,0.18)]" />
+                <span
+                  class="h-2 w-2 rounded-full"
+                  :class="user.online ? 'bg-emerald-400 shadow-[0_0_0_6px_rgba(16,185,129,0.18)]' : 'bg-rose-400 shadow-[0_0_0_6px_rgba(248,113,113,0.18)]'"
+                />
                 <span>{{ user.online ? 'Online' : 'Offline' }}</span>
               </div>
             </div>
@@ -642,13 +647,13 @@ const onGraphLeave = () => {
             </div>
             <div class="space-y-3">
               <p class="text-sm text-zinc-400">Next milestone</p>
-              <div class="relative isolate rounded-full border border-white/10 bg-zinc-900 p-1.5 transition-all duration-500 ease-out hover:border-white/20">
-                <div class="relative h-12 overflow-hidden rounded-full bg-black">
+              <div class="relative isolate rounded-full border border-white/10 bg-zinc-950/60 p-1.5 transition-all duration-500 ease-out hover:border-white/20">
+                <div class="relative h-7 overflow-hidden rounded-full bg-zinc-950/80">
                   <div
-                    class="absolute inset-y-0 left-0 z-0 rounded-full bg-white transition-all duration-700 ease-out"
+                    class="absolute inset-y-0 left-0 z-0 rounded-full bg-white/35 transition-all duration-700 ease-out"
                     :style="{ width: `${milestoneStatus.progressPercent.toFixed(1)}%` }"
                   />
-                  <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-between px-5 text-sm font-semibold text-white mix-blend-difference">
+                  <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-between px-5 text-sm font-semibold text-zinc-200 drop-shadow-[0_1px_1px_rgba(0,0,0,0.65)]">
                     <span>{{ milestoneStatus.label }}</span>
                     <span>{{ milestoneStatus.distance.toLocaleString() }} to go</span>
                   </div>
@@ -1079,22 +1084,28 @@ const onGraphLeave = () => {
 
         <div class="silky-in rounded-2xl border border-white/10 bg-zinc-950/80 p-3 backdrop-blur" style="--i: 5">
           <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-300">
-            <div
-              class="inline-flex items-center gap-2 rounded-full px-3 py-1 font-semibold"
-              :class="statusMeta.tone === 'live' ? 'bg-emerald-500/20 text-emerald-100' : 'bg-sky-500/20 text-sky-100'"
-            >
-              <span class="h-2 w-2 rounded-full" :class="statusMeta.tone === 'live' ? 'bg-emerald-400' : 'bg-sky-400'" />
-              <span>{{ statusMeta.label }}</span>
-              <span class="text-[11px] text-zinc-200/80">· {{ statusMeta.detail }}</span>
+            <div class="flex flex-wrap items-center gap-3 min-w-0">
+              <div class="inline-flex items-center gap-2 min-w-0">
+                <span class="h-2.5 w-2.5 rounded-full shrink-0 pulse-dot" :class="statusMeta.tone === 'live' ? 'bg-emerald-400' : 'bg-sky-400'" />
+                <div class="flex flex-col sm:flex-row sm:items-center sm:gap-1 min-w-0">
+                  <span class="font-semibold whitespace-nowrap">{{ statusMeta.label }}</span>
+                  <span class="text-[11px] text-zinc-200/80 truncate max-w-[18ch] sm:max-w-[28ch]">{{ statusMeta.detail }}</span>
+                </div>
+              </div>
+              <button
+                class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-zinc-200 transition-all duration-300 hover:border-white/30 hover:text-white disabled:opacity-60 shrink-0"
+                :disabled="pending"
+                @click="() => refresh()"
+                aria-label="Refresh profile"
+              >
+                <svg v-if="pending" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"></path></svg>
+                <span>{{ pending ? 'Refreshing…' : 'Refresh' }}</span>
+              </button>
             </div>
-            <button
-              class="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-zinc-200 transition-all duration-300 hover:border-white/30 hover:text-white"
-              :disabled="pending"
-              @click="() => refresh()"
-            >
-              {{ pending ? 'Refreshing…' : 'Refresh profile' }}
-            </button>
-            <span v-if="isDev" class="text-[11px] text-zinc-400">Dev Mode: Cache Bypassed</span>
+            <div class="flex items-center gap-3 flex-wrap justify-end text-zinc-400 sm:text-right text-left">
+              <span class="text-xs">osu!dash: 36886eb</span>
+              <span v-if="isDev" class="text-[11px]">Dev Mode: Cache Bypassed</span>
+            </div>
           </div>
         </div>
 
@@ -1233,5 +1244,25 @@ const onGraphLeave = () => {
 .silky-slide-leave-to {
   transform: translateX(20px);
   opacity: 0;
+}
+
+.pulse-dot {
+  position: relative;
+}
+
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  opacity: 0.5;
+  animation: pulse-ring 2.4s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.5; }
+  35% { transform: scale(1.8); opacity: 0.15; }
+  100% { transform: scale(2.6); opacity: 0; }
 }
 </style>
