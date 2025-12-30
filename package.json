@@ -19,6 +19,7 @@
     "@vueuse/core": "^14.1.0",
     "chart.js": "^4.5.1",
     "chokidar": "^5.0.0",
+    "flagpack-core": "^2.1.0",
     "lzma": "^2.3.2",
     "nuxt": "^4.2.2",
     "osu-api-v2-js": "^2.1.5",

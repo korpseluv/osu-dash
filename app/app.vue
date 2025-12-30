@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import countryCodeList from 'flagpack-core/countryCodeList.json'
 import BeatmapCover from '../components/BeatmapCover.vue'
 import HitErrorBar from '../components/HitErrorBar.vue'
 import ChokeGraph from '../components/ChokeGraph.vue'
@@ -180,6 +181,50 @@ const statusMeta = computed(() => {
     tone: isCached ? 'cached' : 'live'
   }
 })
+
+const flagSvgs = import.meta.glob('../node_modules/flagpack-core/svg/m/*.svg', { eager: true, as: 'url' }) as Record<string, string>
+const flagMap = Object.fromEntries(
+  Object.entries(flagSvgs).map(([path, url]) => {
+    const match = path.match(/\/([A-Za-z]{2})\.svg$/)
+    return [match ? match[1].toUpperCase() : path, url as string]
+  })
+) as Record<string, string>
+
+const countryNameMap = Object.fromEntries(
+  (countryCodeList as any[]).map((entry) => {
+    const code = String(entry?.alpha2 || '').toUpperCase()
+    return [code, entry?.countryName || code]
+  })
+)
+
+const countryCode = computed(() => (user.value?.country || '').trim().toUpperCase())
+const countryFlagUrl = computed(() => {
+  const code = countryCode.value
+  if (!code) return ''
+  return flagMap[code] ?? ''
+})
+const countryFlagEmoji = computed(() => countryToFlag(countryCode.value))
+const countryName = computed(() => {
+  const code = countryCode.value
+  if (!code) return ''
+  return countryNameMap[code] || code
+})
+const profileUrl = computed(() => {
+  const u = user.value
+  if (!u) return 'https://osu.ppy.sh/users'
+  if ((u as any).id != null) return `https://osu.ppy.sh/users/${(u as any).id}`
+  const name = u.username || ''
+  return `https://osu.ppy.sh/users/${encodeURIComponent(name)}`
+})
+
+function countryToFlag(country?: string | null) {
+  if (!country) return ''
+  const cc = country.trim().toUpperCase()
+  if (cc.length !== 2) return cc
+  const A = 0x1F1E6
+  const offset = 'A'.charCodeAt(0)
+  return String.fromCodePoint(...cc.split('').map((c) => A + c.charCodeAt(0) - offset))
+}
 
 const gradeCounts = computed(() => user.value.gradeCounts ?? {})
 
@@ -622,7 +667,27 @@ const onGraphLeave = () => {
               </div>
               <div class="space-y-1">
                 <div class="flex flex-wrap items-center gap-2">
-                  <h1 class="text-3xl font-semibold tracking-tight">{{ user.username }}</h1>
+                  <h1 class="text-3xl font-semibold tracking-tight flex items-center gap-2">
+                    <a :href="profileUrl" target="_blank" rel="noreferrer" class="hover:underline decoration-white/30">
+                      {{ user.username }}
+                    </a>
+                    <span v-if="countryFlagUrl || countryFlagEmoji" class="relative inline-flex items-center group">
+                      <img
+                        v-if="countryFlagUrl"
+                        :src="countryFlagUrl"
+                        :alt="countryName || countryCode || 'Country flag'"
+                        class="h-7 w-10 rounded-lg border border-white/25 shadow-sm shrink-0"
+                        loading="lazy"
+                      />
+                      <span v-else-if="countryFlagEmoji" aria-hidden="true" class="text-xl leading-none">{{ countryFlagEmoji }}</span>
+                      <span
+                        v-if="countryName"
+                        class="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 translate-y-1 whitespace-nowrap rounded-lg border border-white/20 bg-black/90 px-4 py-2 text-[12px] font-semibold text-white opacity-0 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100"
+                      >
+                        {{ countryName }}
+                      </span>
+                    </span>
+                  </h1>
                   
                 </div>
                 <!-- <p class="text-sm text-zinc-500">Single target profile; live only.</p> -->
@@ -693,7 +758,7 @@ const onGraphLeave = () => {
           <div
             v-for="badge in gradeBadges"
             :key="badge.label"
-            class="silky-in rounded-full px-3 py-1 text-xs font-semibold transition-all duration-500 ease-out"
+            class="silky-in rounded-full px-3 py-1 text-xs font-slim transition-all duration-500 ease-out"
             :class="[
               badge.tone === 'badge-ss' ? 'bg-white text-black border border-white' : '',
               badge.tone === 'badge-s' ? 'bg-white text-black border border-white' : '',
@@ -704,7 +769,11 @@ const onGraphLeave = () => {
               !['badge-ss','badge-s','badge-a'].includes(badge.tone) && badge.label !== 'F' ? 'border border-white/30 text-white' : ''
             ]"
           >
-            {{ badge.label }} · {{ badge.value.toLocaleString() }}
+            <span class="inline-flex items-baseline gap-1 leading-none">
+              <span class="text-sm font-semibold">{{ badge.label }}</span>
+              <span aria-hidden="true">·</span>
+                <span class="text-sm font-normal">{{ badge.value.toLocaleString() }}</span>
+            </span>
           </div>
         </div>
 
