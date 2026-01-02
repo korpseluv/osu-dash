@@ -78,6 +78,14 @@ export default defineNuxtConfig({
   },
   vite: {
     plugins: [tsconfigPaths()],
+    server: {
+      // allow hosts for previewing the dev server through a tunnel
+      // Can be set via env: `NUXT_ALLOWED_HOSTS` or `VITE_ALLOWED_HOSTS` (comma-separated).
+      allowedHosts: (process.env.NUXT_ALLOWED_HOSTS || process.env.VITE_ALLOWED_HOSTS || 'osu.korpseluv.com')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    },
     resolve: {
       alias: {
         '~': fileURLToPath(new URL('.', import.meta.url)),
