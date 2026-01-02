@@ -81,7 +81,7 @@ const runtimeConfig = useRuntimeConfig()
 const appVersion = computed(() => String((runtimeConfig.public as any)?.gitHash || 'unknown'))
 
 const fallbackUser: UserPayload = {
-  username: 'chlokun',
+  username: (runtimeConfig.public as any)?.osuTargetUser || 'chlokun',
   avatar: 'https://a.ppy.sh/6829235?1680000000.jpeg',
   rank: 852341,
   pp: 1450,
