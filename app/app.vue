@@ -319,7 +319,7 @@ const modBadgeClass = (mod: string) => {
 
 const rankHistory = computed(() => user.value.rankHistory || [])
 
-const chartRef = ref<HTMLElement | null>(null)
+const chartRef = ref<SVGSVGElement | null>(null)
 const graphHover = ref<{
   index: number
   xPercent: number
@@ -644,10 +644,38 @@ const onGraphMove = (event: MouseEvent) => {
   const firstPoint = meta.points[0]
   if (!firstPoint) return
 
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  const xPx = Math.min(Math.max(event.clientX - rect.left, 0), rect.width)
-  const xRatio = rect.width ? xPx / rect.width : 0
-  const targetX = xRatio * meta.width
+  // Map client coordinates into SVG coordinate space for accurate alignment.
+  let targetX = 0
+  const svg = chartRef.value
+  if (svg && typeof svg.getScreenCTM === 'function') {
+    try {
+      const pt = (svg.createSVGPoint ? svg.createSVGPoint() : (new DOMPoint() as any)) as any
+      pt.x = event.clientX
+      pt.y = event.clientY
+      const ctm = svg.getScreenCTM()
+      if (ctm) {
+        const inv = ctm.inverse()
+        const transformed = pt.matrixTransform(inv)
+        targetX = transformed.x
+      } else {
+        // fallback to bounding rect ratio
+        const rect = svg.getBoundingClientRect()
+        const xPx = Math.min(Math.max(event.clientX - rect.left, 0), rect.width)
+        const xRatio = rect.width ? xPx / rect.width : 0
+        targetX = xRatio * meta.width
+      }
+    } catch (e) {
+      const rect = svg.getBoundingClientRect()
+      const xPx = Math.min(Math.max(event.clientX - rect.left, 0), rect.width)
+      const xRatio = rect.width ? xPx / rect.width : 0
+      targetX = xRatio * meta.width
+    }
+  } else {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+    const xPx = Math.min(Math.max(event.clientX - rect.left, 0), rect.width)
+    const xRatio = rect.width ? xPx / rect.width : 0
+    targetX = xRatio * meta.width
+  }
 
   let nearest = firstPoint
   let minDist = Math.abs(firstPoint.x - targetX)
