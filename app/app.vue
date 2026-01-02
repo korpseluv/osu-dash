@@ -375,34 +375,15 @@ const tabs = [
 
 const activeTab = ref<'overview' | 'top' | 'history' | 'deep'>('overview')
 
-// Fragment <-> tab mappings and helpers.
-const fragForTab: Record<string, string> = {
-  overview: 'overview',
-  top: 'top-ranks',
-  history: 'history',
-  deep: 'deep-stats'
-}
-
-const aliasToTab: Record<string, string> = {
-  overview: 'overview',
-  home: 'overview',
-  top: 'top',
-  'top-ranks': 'top',
-  'top-rank': 'top',
-  history: 'history',
-  activity: 'history',
-  'most-played': 'history',
-  deep: 'deep',
-  'deep-stats': 'deep',
-  deepstats: 'deep',
-  'deep_stats': 'deep'
-}
-
+// Map URL hash to a tab id. Supports '#deep-stats' and '#deep'.
 const mapHashToTab = (hash: string | null) => {
   if (!hash) return null
-  const raw = hash.startsWith('#') ? hash.slice(1) : hash
-  const h = raw.toLowerCase()
-  return aliasToTab[h] || null
+  const h = hash.startsWith('#') ? hash.slice(1) : hash
+  if (h === 'deep' || h === 'deep-stats') return 'deep'
+  if (h === 'overview') return 'overview'
+  if (h === 'top') return 'top'
+  if (h === 'history') return 'history'
+  return null
 }
 
 const setTabFromHash = () => {
@@ -420,9 +401,9 @@ onBeforeUnmount(() => {
   window.removeEventListener('hashchange', setTabFromHash)
 })
 
-// keep the URL fragment in sync with the active tab (use friendly fragments)
+// keep the URL fragment in sync with the active tab
 watch(activeTab, (val) => {
-  const frag = fragForTab[val] || val
+  const frag = val === 'deep' ? 'deep-stats' : val
   try {
     history.replaceState(null, '', `#${frag}`)
   } catch (e) {
