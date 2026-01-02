@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import countryCodeList from 'flagpack-core/countryCodeList.json'
 import BeatmapCover from '../components/BeatmapCover.vue'
 import HitErrorBar from '../components/HitErrorBar.vue'
@@ -374,6 +374,61 @@ const tabs = [
 ]
 
 const activeTab = ref<'overview' | 'top' | 'history' | 'deep'>('overview')
+
+// Fragment <-> tab mappings and helpers.
+const fragForTab: Record<string, string> = {
+  overview: 'overview',
+  top: 'top-ranks',
+  history: 'history',
+  deep: 'deep-stats'
+}
+
+const aliasToTab: Record<string, string> = {
+  overview: 'overview',
+  home: 'overview',
+  top: 'top',
+  'top-ranks': 'top',
+  'top-rank': 'top',
+  history: 'history',
+  activity: 'history',
+  'most-played': 'history',
+  deep: 'deep',
+  'deep-stats': 'deep',
+  deepstats: 'deep',
+  'deep_stats': 'deep'
+}
+
+const mapHashToTab = (hash: string | null) => {
+  if (!hash) return null
+  const raw = hash.startsWith('#') ? hash.slice(1) : hash
+  const h = raw.toLowerCase()
+  return aliasToTab[h] || null
+}
+
+const setTabFromHash = () => {
+  const t = mapHashToTab(typeof window !== 'undefined' ? window.location.hash : null)
+  if (t) activeTab.value = t
+}
+
+onMounted(() => {
+  // initialize from the fragment when the component mounts
+  setTabFromHash()
+  window.addEventListener('hashchange', setTabFromHash)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('hashchange', setTabFromHash)
+})
+
+// keep the URL fragment in sync with the active tab (use friendly fragments)
+watch(activeTab, (val) => {
+  const frag = fragForTab[val] || val
+  try {
+    history.replaceState(null, '', `#${frag}`)
+  } catch (e) {
+    if (typeof window !== 'undefined') window.location.hash = `#${frag}`
+  }
+})
 
 const deepScores = computed(() => {
   const pool = [
