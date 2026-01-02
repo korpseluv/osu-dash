@@ -1110,7 +1110,11 @@ const onGraphLeave = () => {
               <div
                 v-for="score in deepScores"
                 :key="(score as any).beatmap?.checksum || (score as any).beatmap_md5 || score.id"
-                class="group relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/40 p-4 backdrop-blur transition-all duration-500 ease-out hover:-translate-y-px hover:border-white/30"
+                class="group relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/40 p-4 backdrop-blur transition-all duration-500 ease-out hover:-translate-y-px hover:border-white/30 cursor-pointer"
+                role="button"
+                tabindex="0"
+                @click="score.deep_stats && openDetail(score)"
+                @keyup.enter="score.deep_stats && openDetail(score)"
               >
                 <div class="absolute inset-0 opacity-20">
                   <BeatmapCover
