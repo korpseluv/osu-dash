@@ -763,24 +763,21 @@ const onGraphLeave = () => {
         </div>
 
         <div class="flex flex-row flex-wrap gap-2">
-          <div
+              <div
             v-for="badge in gradeBadges"
             :key="badge.label"
             class="silky-in rounded-full px-3 py-1 text-xs font-slim transition-all duration-500 ease-out"
-            :class="[
-              badge.tone === 'badge-ss' ? 'bg-white text-black border border-white' : '',
-              badge.tone === 'badge-s' ? 'bg-white text-black border border-white' : '',
-              badge.tone === 'badge-a' ? 'border border-white/50 text-white' : '',
-              badge.tone === 'badge-s' ? '' : '',
-              badge.tone === 'badge-ss' ? '' : '',
+              :class="[
+              badge.tone === 'badge-ss' ? 'bg-white/6 text-white ring-2 ring-amber-200/20 shadow-[0_0_10px_rgba(255,255,255,0.06)]' : '',
+              badge.tone === 'badge-s' ? 'bg-white/6 text-white ring-2 ring-white/10 shadow-[0_0_8px_rgba(255,255,255,0.04)]' : '',
               badge.label === 'F' ? 'line-through opacity-60 border border-white/20 text-white' : '',
-              !['badge-ss','badge-s','badge-a'].includes(badge.tone) && badge.label !== 'F' ? 'border border-white/30 text-white' : ''
+              !['badge-ss','badge-s'].includes(badge.tone) && badge.label !== 'F' ? 'border border-white/30 text-white' : ''
             ]"
           >
             <span class="inline-flex items-baseline gap-1 leading-none">
               <span class="text-sm font-semibold">{{ badge.label }}</span>
               <span aria-hidden="true">·</span>
-                <span class="text-sm font-normal">{{ badge.value.toLocaleString() }}</span>
+                <span class="text-sm font-light text-zinc-300">{{ badge.value.toLocaleString() }}</span>
             </span>
           </div>
         </div>
