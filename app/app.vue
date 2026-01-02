@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import countryCodeList from 'flagpack-core/countryCodeList.json'
 import BeatmapCover from '../components/BeatmapCover.vue'
 import HitErrorBar from '../components/HitErrorBar.vue'
@@ -319,7 +319,7 @@ const modBadgeClass = (mod: string) => {
 
 const rankHistory = computed(() => user.value.rankHistory || [])
 
-const chartRef = ref<HTMLElement | null>(null)
+const chartRef = ref<SVGSVGElement | null>(null)
 const graphHover = ref<{
   index: number
   xPercent: number
@@ -374,6 +374,42 @@ const tabs = [
 ]
 
 const activeTab = ref<'overview' | 'top' | 'history' | 'deep'>('overview')
+
+// Map URL hash to a tab id. Supports '#deep-stats' and '#deep'.
+const mapHashToTab = (hash: string | null) => {
+  if (!hash) return null
+  const h = hash.startsWith('#') ? hash.slice(1) : hash
+  if (h === 'deep' || h === 'deep-stats') return 'deep'
+  if (h === 'overview') return 'overview'
+  if (h === 'top') return 'top'
+  if (h === 'history') return 'history'
+  return null
+}
+
+const setTabFromHash = () => {
+  const t = mapHashToTab(typeof window !== 'undefined' ? window.location.hash : null)
+  if (t) activeTab.value = t
+}
+
+onMounted(() => {
+  // initialize from the fragment when the component mounts
+  setTabFromHash()
+  window.addEventListener('hashchange', setTabFromHash)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('hashchange', setTabFromHash)
+})
+
+// keep the URL fragment in sync with the active tab
+watch(activeTab, (val) => {
+  const frag = val === 'deep' ? 'deep-stats' : val
+  try {
+    history.replaceState(null, '', `#${frag}`)
+  } catch (e) {
+    if (typeof window !== 'undefined') window.location.hash = `#${frag}`
+  }
+})
 
 const deepScores = computed(() => {
   const pool = [
@@ -608,10 +644,38 @@ const onGraphMove = (event: MouseEvent) => {
   const firstPoint = meta.points[0]
   if (!firstPoint) return
 
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  const xPx = Math.min(Math.max(event.clientX - rect.left, 0), rect.width)
-  const xRatio = rect.width ? xPx / rect.width : 0
-  const targetX = xRatio * meta.width
+  // Map client coordinates into SVG coordinate space for accurate alignment.
+  let targetX = 0
+  const svg = chartRef.value
+  if (svg && typeof svg.getScreenCTM === 'function') {
+    try {
+      const pt = (svg.createSVGPoint ? svg.createSVGPoint() : (new DOMPoint() as any)) as any
+      pt.x = event.clientX
+      pt.y = event.clientY
+      const ctm = svg.getScreenCTM()
+      if (ctm) {
+        const inv = ctm.inverse()
+        const transformed = pt.matrixTransform(inv)
+        targetX = transformed.x
+      } else {
+        // fallback to bounding rect ratio
+        const rect = svg.getBoundingClientRect()
+        const xPx = Math.min(Math.max(event.clientX - rect.left, 0), rect.width)
+        const xRatio = rect.width ? xPx / rect.width : 0
+        targetX = xRatio * meta.width
+      }
+    } catch (e) {
+      const rect = svg.getBoundingClientRect()
+      const xPx = Math.min(Math.max(event.clientX - rect.left, 0), rect.width)
+      const xRatio = rect.width ? xPx / rect.width : 0
+      targetX = xRatio * meta.width
+    }
+  } else {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+    const xPx = Math.min(Math.max(event.clientX - rect.left, 0), rect.width)
+    const xRatio = rect.width ? xPx / rect.width : 0
+    targetX = xRatio * meta.width
+  }
 
   let nearest = firstPoint
   let minDist = Math.abs(firstPoint.x - targetX)
@@ -763,24 +827,21 @@ const onGraphLeave = () => {
         </div>
 
         <div class="flex flex-row flex-wrap gap-2">
-          <div
+              <div
             v-for="badge in gradeBadges"
             :key="badge.label"
             class="silky-in rounded-full px-3 py-1 text-xs font-slim transition-all duration-500 ease-out"
-            :class="[
-              badge.tone === 'badge-ss' ? 'bg-white text-black border border-white' : '',
-              badge.tone === 'badge-s' ? 'bg-white text-black border border-white' : '',
-              badge.tone === 'badge-a' ? 'border border-white/50 text-white' : '',
-              badge.tone === 'badge-s' ? '' : '',
-              badge.tone === 'badge-ss' ? '' : '',
+              :class="[
+              badge.tone === 'badge-ss' ? 'bg-white/6 text-white ring-2 ring-amber-200/20 shadow-[0_0_10px_rgba(255,255,255,0.06)]' : '',
+              badge.tone === 'badge-s' ? 'bg-white/6 text-white ring-2 ring-white/10 shadow-[0_0_8px_rgba(255,255,255,0.04)]' : '',
               badge.label === 'F' ? 'line-through opacity-60 border border-white/20 text-white' : '',
-              !['badge-ss','badge-s','badge-a'].includes(badge.tone) && badge.label !== 'F' ? 'border border-white/30 text-white' : ''
+              !['badge-ss','badge-s'].includes(badge.tone) && badge.label !== 'F' ? 'border border-white/30 text-white' : ''
             ]"
           >
             <span class="inline-flex items-baseline gap-1 leading-none">
               <span class="text-sm font-semibold">{{ badge.label }}</span>
               <span aria-hidden="true">·</span>
-                <span class="text-sm font-normal">{{ badge.value.toLocaleString() }}</span>
+                <span class="text-sm font-light text-zinc-300">{{ badge.value.toLocaleString() }}</span>
             </span>
           </div>
         </div>
@@ -1086,7 +1147,7 @@ const onGraphLeave = () => {
                   :key="ev.id"
                   class="relative mb-5 last:mb-0"
                 >
-                  <span class="absolute -left-1.5 mt-0.5 h-3 w-3 rounded-full border border-white bg-black" />
+                  <span class="absolute -left-4 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border border-white bg-black" />
                   <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 backdrop-blur">
                     <p class="text-sm text-white">{{ ev.text }}</p>
                     <p class="text-xs text-zinc-500">{{ ev.created_at ? new Date(ev.created_at).toISOString().slice(0, 10) : '' }}</p>
@@ -1110,7 +1171,11 @@ const onGraphLeave = () => {
               <div
                 v-for="score in deepScores"
                 :key="(score as any).beatmap?.checksum || (score as any).beatmap_md5 || score.id"
-                class="group relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/40 p-4 backdrop-blur transition-all duration-500 ease-out hover:-translate-y-px hover:border-white/30"
+                class="group relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/40 p-4 backdrop-blur transition-all duration-500 ease-out hover:-translate-y-px hover:border-white/30 cursor-pointer"
+                role="button"
+                tabindex="0"
+                @click="score.deep_stats && openDetail(score)"
+                @keyup.enter="score.deep_stats && openDetail(score)"
               >
                 <div class="absolute inset-0 opacity-20">
                   <BeatmapCover

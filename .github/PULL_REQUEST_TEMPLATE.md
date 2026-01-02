@@ -9,6 +9,7 @@ Why is this change needed?
 ## Testing
 
 - [ ] `npm run build`
+- [ ] `npm run typecheck`
 - [ ] Manual check (screenshots optional)
 
 ## Security / privacy
