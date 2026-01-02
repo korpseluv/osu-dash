@@ -1086,7 +1086,7 @@ const onGraphLeave = () => {
                   :key="ev.id"
                   class="relative mb-5 last:mb-0"
                 >
-                  <span class="absolute -left-1.5 mt-0.5 h-3 w-3 rounded-full border border-white bg-black" />
+                  <span class="absolute -left-4 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border border-white bg-black" />
                   <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 backdrop-blur">
                     <p class="text-sm text-white">{{ ev.text }}</p>
                     <p class="text-xs text-zinc-500">{{ ev.created_at ? new Date(ev.created_at).toISOString().slice(0, 10) : '' }}</p>
