@@ -125,6 +125,32 @@ export function calculateRank(h: ReplayHits, mods: number): string {
 	return base
 }
 
+export function calculateRankV2(accPct: number, mods = 0): string {
+	const acc = typeof accPct === 'number' && Number.isFinite(accPct) ? accPct : 0
+
+	let base: 'SS' | 'S' | 'A' | 'B' | 'C' | 'D'
+	if (acc >= 100 - 1e-9) {
+		base = 'SS'
+	} else if (acc >= 95) {
+		base = 'S'
+	} else if (acc >= 90) {
+		base = 'A'
+	} else if (acc >= 80) {
+		base = 'B'
+	} else if (acc >= 70) {
+		base = 'C'
+	} else {
+		base = 'D'
+	}
+
+	const MOD_HD = 8
+	const MOD_FL = 1024
+	const silver = (mods & MOD_HD) !== 0 || (mods & MOD_FL) !== 0
+	if (silver && base === 'SS') return 'SSH'
+	if (silver && base === 'S') return 'SH'
+	return base
+}
+
 export function parseLifeBarEndPercent(lifeBar: unknown): number | null {
 	if (!lifeBar) return null
 

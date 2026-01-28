@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import classicIconUrl from '~/assets/icons/classic.png'
 import countryCodeList from 'flagpack-core/countryCodeList.json'
 import BeatmapCover from '../components/BeatmapCover.vue'
 import HitErrorBar from '../components/HitErrorBar.vue'
@@ -998,7 +999,10 @@ const onGraphLeave = () => {
                   </div>
                   <div class="flex items-center gap-4">
                     <div class="flex flex-col items-end gap-2 text-sm">
-                    <span :class="rankClass(score.rank)">{{ score.rank || '—' }}</span>
+                    <div class="flex items-center gap-2">
+                      <img v-if="(score as any).classic" :src="classicIconUrl" alt="Classic" class="h-4 w-4 rounded-sm" />
+                      <span :class="rankClass(score.rank)">{{ score.rank || '—' }}</span>
+                    </div>
                     <span class="text-white font-semibold" :class="isFail(score.rank) ? 'line-through text-zinc-600' : ''">
                       {{ score.pp != null ? `${Math.round(score.pp)} pp` : '—' }}
                     </span>
@@ -1200,7 +1204,10 @@ const onGraphLeave = () => {
                   </div>
                   <div class="flex items-center gap-4">
                     <div class="flex flex-col items-end gap-2 text-sm">
-                      <span :class="rankClass(score.rank)">{{ score.rank || '—' }}</span>
+                      <div class="flex items-center gap-2">
+                        <img v-if="(score as any).classic" :src="classicIconUrl" alt="Classic" class="h-4 w-4 rounded-sm" />
+                        <span :class="rankClass(score.rank)">{{ score.rank || '—' }}</span>
+                      </div>
                       <span class="text-white font-semibold">{{ score.pp != null ? `${Math.round(score.pp)} pp` : '—' }}</span>
                       <div v-if="scoreMods(score).length" class="flex flex-wrap justify-end gap-1">
                         <span v-for="m in scoreMods(score)" :key="m" :class="modBadgeClass(m)">{{ m }}</span>

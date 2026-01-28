@@ -10,6 +10,8 @@ import json
 import sys
 import traceback
 from pathlib import Path
+import os
+from inspect import signature
 
 
 def emit(payload: dict, exit_code: int = 0) -> None:
@@ -42,7 +44,26 @@ def main() -> int:
 		)
 
 	try:
-		cg = Circleguard()
+		# Circleguard API changed to require a key in some versions.
+		# Inspect the constructor and provide a key from the environment if needed.
+		try:
+			sig = signature(Circleguard)
+			params = sig.parameters
+		except Exception:
+			params = {}
+
+		if 'key' in params:
+			env_key = os.environ.get('CIRCLEGUARD_KEY')
+			if not env_key:
+				emit({
+					"error": "circleguard_key_missing",
+					"detail": "Circleguard requires a key. Set CIRCLEGUARD_KEY in environment."},
+					1,
+				)
+			cg = Circleguard(env_key)
+		else:
+			cg = Circleguard()
+
 		rp = ReplayPath(str(replay_path))
 		ur_value = cg.ur(rp)
 		emit({"ur": float(ur_value) if ur_value is not None else None}, 0)

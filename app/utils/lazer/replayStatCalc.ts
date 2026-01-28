@@ -6,6 +6,7 @@ import { BeatmapDecoder } from 'osu-parsers'
 import {
 	calculateAccuracy,
 	calculateRank,
+	calculateRankV2,
 	extractBeatmapHash,
 	isValidBeatmapHash,
 	modsToArray,
@@ -605,6 +606,29 @@ export async function buildEntryFromReplay(options: {
 	const beatmapHash = options.beatmapHash
 
 	let entry: any
+
+	function isClassicApiScore(s: any): boolean {
+		if (!s) return false
+		if (s?.CS === true || s?.cs === true) return true
+		const t = s?.score_type ?? s?.type ?? s?.mode
+		if (typeof t === 'string') {
+			const v = t.toLowerCase()
+			if (v === 'cs' || v === 'classic' || v === 'stable') return true
+		}
+		return false
+	}
+
+	function isClassicFromReplay(scoreObj: any, infoObj: any): boolean {
+		if (scoreObj && (scoreObj?.CS === true || scoreObj?.cs === true)) return true
+		if (infoObj && (infoObj?.CS === true || infoObj?.cs === true)) return true
+		const sType = scoreObj?.score_type ?? scoreObj?.type ?? infoObj?.score_type ?? infoObj?.type
+		if (typeof sType === 'string') {
+			const v = sType.toLowerCase()
+			if (v === 'cs' || v === 'classic' || v === 'stable') return true
+		}
+		return false
+	}
+
 	if (apiScore) {
 		const apiRankRaw = apiScore?.rank ?? apiScore?.grade ?? null
 		const apiRank = typeof apiRankRaw === 'string' ? apiRankRaw.toUpperCase() : null
@@ -612,36 +636,77 @@ export async function buildEntryFromReplay(options: {
 		const apiPp = typeof apiScore?.pp === 'number' ? apiScore.pp : null
 		const apiCreatedAt = typeof apiScore?.created_at === 'string' ? apiScore.created_at : null
 
-		entry = {
-			id: apiScore?.id ?? apiScore?.score_id ?? apiScore?.best_id ?? apiScore?.legacy_score_id ?? `${beatmapHash}:${replayTimestamp || options.fileName}`,
-			title: beatmapMeta?.beatmapset?.title || beatmapMeta?.title || 'Unknown map',
-			difficulty: beatmapMeta?.version || '—',
-			rank: apiRank || computedReplayRank,
-			pp: apiPp,
-			accuracy: apiAcc ?? replayAcc,
-			score: normalizeApiScoreValue(apiScore) ?? (hasReplayScore ? replayScoreNumber : null),
-			created_at: apiCreatedAt || (replayTimestamp ? new Date(replayTimestamp).toISOString() : new Date().toISOString()),
-			beatmap_md5: beatmapHash,
-			beatmap: {
-				checksum: beatmapHash,
-				title: beatmapMeta?.beatmapset?.title || beatmapMeta?.title || null,
-				version: beatmapMeta?.version || null,
-				id: beatmapMeta?.id ?? null
-			},
-			beatmapset: beatmapMeta?.beatmapset
-				? {
+		const useClassic = isClassicApiScore(apiScore)
+		const replayClassic = isClassicFromReplay(options.score, options.info)
+
+		if (useClassic) {
+			entry = {
+				id: apiScore?.id ?? apiScore?.score_id ?? apiScore?.best_id ?? apiScore?.legacy_score_id ?? `${beatmapHash}:${replayTimestamp || options.fileName}`,
+				title: beatmapMeta?.beatmapset?.title || beatmapMeta?.title || 'Unknown map',
+				difficulty: beatmapMeta?.version || '—',
+				rank: apiRank || computedReplayRank,
+				pp: apiPp,
+				accuracy: apiAcc ?? replayAcc,
+				score: normalizeApiScoreValue(apiScore) ?? (hasReplayScore ? replayScoreNumber : null),
+				created_at: apiCreatedAt || (replayTimestamp ? new Date(replayTimestamp).toISOString() : new Date().toISOString()),
+				beatmap_md5: beatmapHash,
+				beatmap: {
+					checksum: beatmapHash,
+					title: beatmapMeta?.beatmapset?.title || beatmapMeta?.title || null,
+					version: beatmapMeta?.version || null,
+					id: beatmapMeta?.id ?? null
+				},
+				beatmapset: beatmapMeta?.beatmapset
+					? {
 						id: beatmapMeta.beatmapset.id ?? beatmapMeta.beatmapset_id ?? null,
 						title: beatmapMeta.beatmapset.title ?? null,
 						artist: beatmapMeta.beatmapset.artist ?? null,
 						creator: beatmapMeta.beatmapset.creator ?? null,
 						covers: beatmapMeta.beatmapset.covers ?? null
 					}
-				: undefined,
-			mods: replayMods,
-			mods_list: replayModsList
-		}
+					: undefined,
+				mods: replayMods,
+				mods_list: replayModsList
+			}
 
-		if (options.passed === true && String(entry.rank || '').toUpperCase() === 'F') entry.rank = computedReplayRank
+			entry.classic = true
+
+			if (options.passed === true && String(entry.rank || '').toUpperCase() === 'F') entry.rank = computedReplayRank
+		} else {
+			const v2rank = calculateRankV2(apiAcc ?? replayAcc, replayMods)
+			entry = {
+				id: apiScore?.id ?? apiScore?.score_id ?? apiScore?.best_id ?? apiScore?.legacy_score_id ?? `${beatmapHash}:${replayTimestamp || options.fileName}`,
+				title: beatmapMeta?.beatmapset?.title || beatmapMeta?.title || 'Unknown map',
+				difficulty: beatmapMeta?.version || '—',
+				rank: v2rank,
+				pp: apiPp,
+				accuracy: apiAcc ?? replayAcc,
+				score: normalizeApiScoreValue(apiScore) ?? (hasReplayScore ? replayScoreNumber : null),
+				created_at: apiCreatedAt || (replayTimestamp ? new Date(replayTimestamp).toISOString() : new Date().toISOString()),
+				beatmap_md5: beatmapHash,
+				beatmap: {
+					checksum: beatmapHash,
+					title: beatmapMeta?.beatmapset?.title || beatmapMeta?.title || null,
+					version: beatmapMeta?.version || null,
+					id: beatmapMeta?.id ?? null
+				},
+				beatmapset: beatmapMeta?.beatmapset
+					? {
+						id: beatmapMeta.beatmapset.id ?? beatmapMeta.beatmapset_id ?? null,
+						title: beatmapMeta.beatmapset.title ?? null,
+						artist: beatmapMeta.beatmapset.artist ?? null,
+						creator: beatmapMeta.beatmapset.creator ?? null,
+						covers: beatmapMeta.beatmapset.covers ?? null
+					}
+					: undefined,
+				mods: replayMods,
+				mods_list: replayModsList
+			}
+
+			entry.classic = replayClassic === true
+
+			if (options.passed === true && String(entry.rank || '').toUpperCase() === 'F') entry.rank = computedReplayRank
+		}
 	} else {
 		entry = {
 			id: `ghost:${beatmapHash || 'nohash'}:${replayTimestamp || options.fileName}`,
@@ -671,6 +736,8 @@ export async function buildEntryFromReplay(options: {
 			mods: replayMods,
 			mods_list: replayModsList
 		}
+		// detect classic from the local replay/info when no API score is present
+		entry.classic = isClassicFromReplay(options.score, options.info)
 	}
 
 	if (beatmapHash) {
